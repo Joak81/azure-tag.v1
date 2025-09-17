@@ -1,0 +1,50 @@
+import winston from 'winston';
+import { Request, Response, NextFunction } from 'express';
+
+// Create Winston logger
+export const winstonLogger = winston.createLogger({
+  level: process.env.LOG_LEVEL || 'info',
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.errors({ stack: true }),
+    winston.format.json()
+  ),
+  defaultMeta: { service: 'azure-tag-manager-api' },
+  transports: [
+    new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
+    new winston.transports.File({ filename: 'logs/combined.log' }),
+  ],
+});
+
+// If we're not in production then log to the `console` with the format:
+// `${info.level}: ${info.message} JSON.stringify({ ...rest })`
+if (process.env.NODE_ENV !== 'production') {
+  winstonLogger.add(new winston.transports.Console({
+    format: winston.format.simple()
+  }));
+}
+
+// Express middleware for request logging
+export const logger = (req: Request, res: Response, next: NextFunction) => {
+  const start = Date.now();
+
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    const logData = {
+      method: req.method,
+      url: req.originalUrl,
+      statusCode: res.statusCode,
+      duration: `${duration}ms`,
+      userAgent: req.get('User-Agent'),
+      ip: req.ip || req.connection.remoteAddress,
+    };
+
+    if (res.statusCode >= 400) {
+      winstonLogger.warn('HTTP Request', logData);
+    } else {
+      winstonLogger.info('HTTP Request', logData);
+    }
+  });
+
+  next();
+};

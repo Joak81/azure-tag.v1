@@ -1,0 +1,177 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  AZURE_WEBAPP_NAME: finops-tag-manager-prod
+  AZURE_RESOURCE_GROUP: FinOps-Azure-TAG
+  NODE_VERSION: '20'
+
+jobs:
+  test:
+    name: Test and Build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Install root dependencies
+      run: npm install
+
+    - name: Install frontend dependencies
+      working-directory: frontend
+      run: npm ci
+
+    - name: Install backend dependencies
+      working-directory: backend
+      run: npm ci
+
+    - name: Run frontend tests
+      working-directory: frontend
+      run: npm test -- --watchAll=false --coverage
+
+    - name: Run backend tests
+      working-directory: backend
+      run: npm test -- --coverage
+
+    - name: Run frontend linting
+      working-directory: frontend
+      run: npm run lint
+
+    - name: Run backend linting
+      working-directory: backend
+      run: npm run lint
+
+    - name: Run type checking
+      run: npm run typecheck
+
+    - name: Build application
+      run: npm run build
+
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      with:
+        directory: ./frontend/coverage,./backend/coverage
+
+  deploy-staging:
+    name: Deploy to Staging
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+    environment: staging
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Install and build
+      run: |
+        npm run install:all
+        npm run build
+
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Deploy to staging
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: finops-tag-manager-staging
+        package: .
+
+  deploy-production:
+    name: Deploy to Production
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment: production
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Install and build
+      run: |
+        npm run install:all
+        npm run build
+
+    - name: Create deployment package
+      run: |
+        mkdir -p deploy
+        cp -r frontend/dist/* deploy/
+        cp -r backend/dist/* deploy/
+        cp backend/package.json deploy/
+        cd deploy && zip -r ../deployment-package.zip .
+
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Deploy to Azure Web App
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: ${{ env.AZURE_WEBAPP_NAME }}
+        resource-group-name: ${{ env.AZURE_RESOURCE_GROUP }}
+        package: deployment-package.zip
+
+    - name: Run post-deployment health check
+      run: |
+        echo "Waiting for deployment to complete..."
+        sleep 60
+
+        health_url="https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net/health"
+        response=$(curl -s -o /dev/null -w "%{http_code}" $health_url)
+
+        if [ $response -eq 200 ]; then
+          echo "✅ Health check passed"
+        else
+          echo "❌ Health check failed with status: $response"
+          exit 1
+        fi
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run security audit
+      run: |
+        npm audit --audit-level=moderate
+        cd frontend && npm audit --audit-level=moderate
+        cd ../backend && npm audit --audit-level=moderate
+
+    - name: Run Snyk security scan
+      uses: snyk/actions/node@master
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        args: --severity-threshold=high

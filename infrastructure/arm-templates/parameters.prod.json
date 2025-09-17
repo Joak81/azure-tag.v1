@@ -1,0 +1,30 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "appName": {
+      "value": "finops-tag-manager"
+    },
+    "environment": {
+      "value": "prod"
+    },
+    "skuName": {
+      "value": "B2"
+    },
+    "nodeVersion": {
+      "value": "20-lts"
+    },
+    "tags": {
+      "value": {
+        "Environment": "Production",
+        "Owner": "FinOps Team",
+        "CostCenter": "IT-001",
+        "Project": "Azure Tag Manager",
+        "Application": "FinOps",
+        "Criticality": "High",
+        "DataClassification": "Internal",
+        "BackupRequired": "Yes"
+      }
+    }
+  }
+}
