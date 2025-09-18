@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Text,
   Button,
@@ -22,6 +22,10 @@ import {
   MenuList,
   MenuItem,
   Checkbox,
+  Spinner,
+  MessageBar,
+  MessageBarBody,
+  MessageBarTitle,
 } from '@fluentui/react-components';
 import {
   SearchRegular,
@@ -30,6 +34,8 @@ import {
   MoreVerticalRegular,
   EditRegular,
   DeleteRegular,
+  ErrorCircleRegular,
+  InfoRegular,
 } from '@fluentui/react-icons';
 
 const useStyles = makeStyles({
@@ -98,12 +104,28 @@ interface Resource {
   type: string;
   resourceGroup: string;
   subscription: string;
+  subscriptionId: string;
   location: string;
   tags: Record<string, string>;
   selected?: boolean;
 }
 
-// Mock data
+interface TagInfo {
+  key: string;
+  values: string[];
+}
+
+interface SubscriptionInfo {
+  subscriptionId: string;
+  displayName: string;
+}
+
+interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+}
+
+// Mock data for development
 const mockResources: Resource[] = [
   {
     id: '1',
@@ -111,6 +133,7 @@ const mockResources: Resource[] = [
     type: 'Microsoft.Web/sites',
     resourceGroup: 'rg-prod-web',
     subscription: 'Production Subscription',
+    subscriptionId: 'sub-prod-001',
     location: 'West Europe',
     tags: { Environment: 'Production', Owner: 'team-web@company.com', CostCenter: 'CC-001' },
   },
@@ -120,6 +143,7 @@ const mockResources: Resource[] = [
     type: 'Microsoft.Storage/storageAccounts',
     resourceGroup: 'rg-prod-storage',
     subscription: 'Production Subscription',
+    subscriptionId: 'sub-prod-001',
     location: 'West Europe',
     tags: { Environment: 'Production', Project: 'Logging' },
   },
@@ -129,20 +153,42 @@ const mockResources: Resource[] = [
     type: 'Microsoft.Compute/virtualMachines',
     resourceGroup: 'rg-dev-compute',
     subscription: 'Development Subscription',
+    subscriptionId: 'sub-dev-001',
     location: 'North Europe',
     tags: { Environment: 'Development' },
+  },
+  {
+    id: '4',
+    name: 'untagged-storage-001',
+    type: 'Microsoft.Storage/storageAccounts',
+    resourceGroup: 'rg-test',
+    subscription: 'Test Subscription',
+    subscriptionId: 'sub-test-001',
+    location: 'North Europe',
+    tags: {},
   },
 ];
 
 export const ResourcesPage: React.FC = () => {
   const styles = useStyles();
-  const [resources, setResources] = useState<Resource[]>(mockResources);
+  const [resources, setResources] = useState<Resource[]>([]);
+  const [allTags, setAllTags] = useState<TagInfo[]>([]);
+  const [subscriptions, setSubscriptions] = useState<SubscriptionInfo[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string>('');
+
+  // Filter states
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSubscription, setSelectedSubscription] = useState<string>('');
   const [selectedResourceGroup, setSelectedResourceGroup] = useState<string>('');
   const [selectedType, setSelectedType] = useState<string>('');
+  const [selectedMissingTags, setSelectedMissingTags] = useState<string[]>([]);
+  const [showOnlyResourcesWithoutTags, setShowOnlyResourcesWithoutTags] = useState(false);
 
   const selectedResourcesCount = resources.filter(r => r.selected).length;
+
+  // API base URL from environment
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
 
   const handleResourceSelection = (resourceId: string, selected: boolean) => {
     setResources(prev =>
@@ -152,6 +198,106 @@ export const ResourcesPage: React.FC = () => {
 
   const handleSelectAll = (selected: boolean) => {
     setResources(prev => prev.map(r => ({ ...r, selected })));
+  };
+
+  // Load initial data
+  useEffect(() => {
+    loadSubscriptions();
+    loadAllTags();
+    loadResources();
+  }, []);
+
+  // Load subscriptions
+  const loadSubscriptions = async () => {
+    try {
+      // For now, use mock data. In production, this would fetch from API
+      setSubscriptions([
+        { subscriptionId: 'sub-prod-001', displayName: 'Production Subscription' },
+        { subscriptionId: 'sub-dev-001', displayName: 'Development Subscription' },
+        { subscriptionId: 'sub-test-001', displayName: 'Test Subscription' },
+      ]);
+    } catch (err) {
+      console.error('Failed to load subscriptions:', err);
+    }
+  };
+
+  // Load all available tags
+  const loadAllTags = async () => {
+    try {
+      // For now, use mock data. In production, this would fetch from API
+      setAllTags([
+        { key: 'Environment', values: ['Production', 'Development', 'Test'] },
+        { key: 'Owner', values: ['team-web@company.com', 'team-data@company.com'] },
+        { key: 'CostCenter', values: ['CC-001', 'CC-002', 'CC-003'] },
+        { key: 'Project', values: ['Logging', 'Analytics', 'Web'] },
+      ]);
+    } catch (err) {
+      console.error('Failed to load tags:', err);
+    }
+  };
+
+  // Load resources with current filters
+  const loadResources = async () => {
+    setLoading(true);
+    setError('');
+
+    try {
+      // For now, use mock data. In production, this would fetch from API
+      let filteredResources = [...mockResources];
+
+      // Apply filters
+      if (searchTerm) {
+        filteredResources = filteredResources.filter(resource =>
+          resource.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          resource.type.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      }
+
+      if (selectedSubscription) {
+        filteredResources = filteredResources.filter(resource =>
+          resource.subscriptionId === selectedSubscription
+        );
+      }
+
+      if (selectedType) {
+        filteredResources = filteredResources.filter(resource =>
+          resource.type === selectedType
+        );
+      }
+
+      if (showOnlyResourcesWithoutTags) {
+        filteredResources = filteredResources.filter(resource =>
+          !resource.tags || Object.keys(resource.tags).length === 0
+        );
+      }
+
+      if (selectedMissingTags.length > 0) {
+        filteredResources = filteredResources.filter(resource => {
+          if (!resource.tags) return true; // No tags means missing all tags
+          return selectedMissingTags.some(tag => !Object.keys(resource.tags).includes(tag));
+        });
+      }
+
+      setResources(filteredResources);
+    } catch (err) {
+      setError('Failed to load resources. Please try again.');
+      console.error('Failed to load resources:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Reload resources when filters change
+  useEffect(() => {
+    loadResources();
+  }, [searchTerm, selectedSubscription, selectedType, selectedMissingTags, showOnlyResourcesWithoutTags]);
+
+  const handleMissingTagSelection = (tagKey: string) => {
+    setSelectedMissingTags(prev =>
+      prev.includes(tagKey)
+        ? prev.filter(tag => tag !== tagKey)
+        : [...prev, tagKey]
+    );
   };
 
   const columns: TableColumnDefinition<Resource>[] = [
@@ -257,6 +403,15 @@ export const ResourcesPage: React.FC = () => {
         </Button>
       </div>
 
+      {error && (
+        <MessageBar intent="error">
+          <MessageBarBody>
+            <MessageBarTitle>Error</MessageBarTitle>
+            {error}
+          </MessageBarBody>
+        </MessageBar>
+      )}
+
       <div className={styles.filters}>
         <Input
           className={styles.searchInput}
@@ -273,20 +428,11 @@ export const ResourcesPage: React.FC = () => {
           onOptionSelect={(_, data) => setSelectedSubscription(data.optionValue || '')}
         >
           <Option value="">All Subscriptions</Option>
-          <Option value="production">Production Subscription</Option>
-          <Option value="development">Development Subscription</Option>
-        </Dropdown>
-
-        <Dropdown
-          className={styles.dropdown}
-          placeholder="Resource Group"
-          value={selectedResourceGroup}
-          onOptionSelect={(_, data) => setSelectedResourceGroup(data.optionValue || '')}
-        >
-          <Option value="">All Resource Groups</Option>
-          <Option value="rg-prod-web">rg-prod-web</Option>
-          <Option value="rg-prod-storage">rg-prod-storage</Option>
-          <Option value="rg-dev-compute">rg-dev-compute</Option>
+          {subscriptions.map(sub => (
+            <Option key={sub.subscriptionId} value={sub.subscriptionId}>
+              {sub.displayName}
+            </Option>
+          ))}
         </Dropdown>
 
         <Dropdown
@@ -301,10 +447,47 @@ export const ResourcesPage: React.FC = () => {
           <Option value="Microsoft.Compute/virtualMachines">Virtual Machines</Option>
         </Dropdown>
 
-        <Button appearance="secondary" icon={<FilterRegular />}>
-          Advanced Filters
-        </Button>
+        <Checkbox
+          label="Show only resources without any tags"
+          checked={showOnlyResourcesWithoutTags}
+          onChange={(_, data) => setShowOnlyResourcesWithoutTags(!!data.checked)}
+        />
       </div>
+
+      {/* Missing Tags Filter Section */}
+      <div className={styles.filters}>
+        <Text weight="semibold">Filter by Missing Tags:</Text>
+        {allTags.map(tag => (
+          <Checkbox
+            key={tag.key}
+            label={`Missing "${tag.key}" tag`}
+            checked={selectedMissingTags.includes(tag.key)}
+            onChange={() => handleMissingTagSelection(tag.key)}
+          />
+        ))}
+        {selectedMissingTags.length > 0 && (
+          <Button
+            appearance="subtle"
+            size="small"
+            onClick={() => setSelectedMissingTags([])}
+          >
+            Clear Missing Tag Filters
+          </Button>
+        )}
+      </div>
+
+      {/* Active Filters Summary */}
+      {(selectedMissingTags.length > 0 || showOnlyResourcesWithoutTags) && (
+        <MessageBar intent="info">
+          <MessageBarBody>
+            <MessageBarTitle>Active Filters</MessageBarTitle>
+            {showOnlyResourcesWithoutTags && <Text>Showing only resources without any tags. </Text>}
+            {selectedMissingTags.length > 0 && (
+              <Text>Showing resources missing tags: {selectedMissingTags.join(', ')}</Text>
+            )}
+          </MessageBarBody>
+        </MessageBar>
+      )}
 
       {selectedResourcesCount > 0 && (
         <div className={styles.bulkActions}>
@@ -322,29 +505,41 @@ export const ResourcesPage: React.FC = () => {
       )}
 
       <div className={styles.dataGridContainer}>
-        <DataGrid
-          items={resources}
-          columns={columns}
-          sortable
-          getRowId={(item) => item.id}
-        >
-          <DataGridHeader>
-            <DataGridRow>
-              {({ renderHeaderCell }) => (
-                <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>
-              )}
-            </DataGridRow>
-          </DataGridHeader>
-          <DataGridBody<Resource>>
-            {({ item, rowId }) => (
-              <DataGridRow<Resource> key={rowId}>
-                {({ renderCell }) => (
-                  <DataGridCell>{renderCell(item)}</DataGridCell>
+        {loading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px' }}>
+            <Spinner label="Loading resources..." />
+          </div>
+        ) : resources.length === 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '200px', gap: '12px' }}>
+            <InfoRegular style={{ fontSize: '48px', color: tokens.colorNeutralForeground3 }} />
+            <Text>No resources found matching the current filters.</Text>
+            <Text size={200}>Try adjusting your filter criteria or clearing some filters.</Text>
+          </div>
+        ) : (
+          <DataGrid
+            items={resources}
+            columns={columns}
+            sortable
+            getRowId={(item) => item.id}
+          >
+            <DataGridHeader>
+              <DataGridRow>
+                {({ renderHeaderCell }) => (
+                  <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>
                 )}
               </DataGridRow>
-            )}
-          </DataGridBody>
-        </DataGrid>
+            </DataGridHeader>
+            <DataGridBody<Resource>>
+              {({ item, rowId }) => (
+                <DataGridRow<Resource> key={rowId}>
+                  {({ renderCell }) => (
+                    <DataGridCell>{renderCell(item)}</DataGridCell>
+                  )}
+                </DataGridRow>
+              )}
+            </DataGridBody>
+          </DataGrid>
+        )}
       </div>
     </div>
   );

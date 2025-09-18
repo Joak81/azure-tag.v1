@@ -32,7 +32,13 @@
       "Bash(az webapp log deployment show:*)",
       "Bash(git init:*)",
       "Bash(git pull:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(timeout:*)",
+      "Bash(Write-Host \"🚀 Deploy em curso com frontend build...\" -ForegroundColor Green)",
+      "Bash(Write-Host \"⏱️ Aguardando GitHub Actions completar...\" -ForegroundColor Yellow)",
+      "Bash(git fetch:*)"
     ],
     "deny": [],
     "ask": []

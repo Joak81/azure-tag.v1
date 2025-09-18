@@ -248,6 +248,7 @@ router.get('/search', asyncHandler(async (req: Request, res: Response) => {
     location,
     hasTag,
     missingTag,
+    missingTags, // Support for multiple missing tags
     tagKey,
     tagValue,
     limit = 100,
@@ -317,6 +318,15 @@ router.get('/search', asyncHandler(async (req: Request, res: Response) => {
     );
   }
 
+  // Support for multiple missing tags (comma-separated)
+  if (missingTags) {
+    const tagsArray = (missingTags as string).split(',').map(tag => tag.trim());
+    filteredResources = filteredResources.filter(resource => {
+      if (!resource.tags) return true; // No tags means missing all tags
+      return tagsArray.some(tag => !Object.keys(resource.tags).includes(tag));
+    });
+  }
+
   if (tagKey && tagValue) {
     filteredResources = filteredResources.filter(resource =>
       resource.tags && resource.tags[tagKey as string] === tagValue
@@ -337,6 +347,74 @@ router.get('/search', asyncHandler(async (req: Request, res: Response) => {
         limit: pageSize,
         offset: startIndex,
         hasMore: startIndex + pageSize < filteredResources.length,
+      },
+    },
+  });
+}));
+
+/**
+ * GET /api/resources/tags/all
+ * Get all unique tags across accessible resources
+ */
+router.get('/tags/all', asyncHandler(async (req: Request, res: Response) => {
+  const { subscriptionId } = req.query;
+  const userToken = req.accessToken;
+
+  if (!userToken) {
+    throw badRequest('Access token not available');
+  }
+
+  const allResources: any[] = [];
+
+  if (subscriptionId) {
+    // Get tags from specific subscription
+    const resources = await azureService.getResources(subscriptionId as string, userToken);
+    allResources.push(...resources);
+  } else {
+    // Get tags across all accessible subscriptions
+    const subscriptions = await azureService.getSubscriptions(userToken);
+    for (const subscription of subscriptions) {
+      try {
+        const resources = await azureService.getResources(subscription.subscriptionId, userToken);
+        allResources.push(...resources);
+      } catch (error) {
+        // Continue with other subscriptions if one fails
+        console.warn(`Failed to fetch resources from subscription ${subscription.subscriptionId}`);
+      }
+    }
+  }
+
+  // Collect all unique tag keys and values
+  const tagKeys = new Set<string>();
+  const tagValues = new Map<string, Set<string>>();
+
+  allResources.forEach(resource => {
+    if (resource.tags) {
+      Object.entries(resource.tags).forEach(([key, value]) => {
+        tagKeys.add(key);
+        if (!tagValues.has(key)) {
+          tagValues.set(key, new Set());
+        }
+        tagValues.get(key)!.add(value as string);
+      });
+    }
+  });
+
+  // Convert to arrays for JSON response
+  const tagsData = Array.from(tagKeys).map(key => ({
+    key,
+    values: Array.from(tagValues.get(key) || []),
+  }));
+
+  res.json({
+    success: true,
+    data: {
+      tags: tagsData,
+      summary: {
+        totalUniqueKeys: tagKeys.size,
+        totalResources: allResources.length,
+        resourcesWithTags: allResources.filter(r => r.tags && Object.keys(r.tags).length > 0).length,
+        resourcesWithoutTags: allResources.filter(r => !r.tags || Object.keys(r.tags).length === 0).length,
       },
     },
   });
