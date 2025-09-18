@@ -30,6 +30,11 @@ jobs:
           cd ../backend && npm install
 
       - name: Build frontend
+        env:
+          VITE_AZURE_CLIENT_ID: "52498d89-ea81-4584-aa00-dc3004ef9dd4"
+          VITE_AZURE_TENANT_ID: "cd49f469-eabf-4bb1-8520-4991392c368b"
+          VITE_REDIRECT_URI: "https://finops-tag-manager-prod.azurewebsites.net"
+          VITE_API_BASE_URL: "https://finops-tag-manager-prod.azurewebsites.net/api"
         run: |
           cd frontend
           npm run build
