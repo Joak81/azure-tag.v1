@@ -29,12 +29,10 @@ import {
 } from '@fluentui/react-components';
 import {
   SearchRegular,
-  FilterRegular,
   TagRegular,
   MoreVerticalRegular,
   EditRegular,
   DeleteRegular,
-  ErrorCircleRegular,
   InfoRegular,
 } from '@fluentui/react-icons';
 
@@ -120,10 +118,6 @@ interface SubscriptionInfo {
   displayName: string;
 }
 
-interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-}
 
 // Mock data for development
 const mockResources: Resource[] = [
@@ -180,15 +174,11 @@ export const ResourcesPage: React.FC = () => {
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSubscription, setSelectedSubscription] = useState<string>('');
-  const [selectedResourceGroup, setSelectedResourceGroup] = useState<string>('');
   const [selectedType, setSelectedType] = useState<string>('');
   const [selectedMissingTags, setSelectedMissingTags] = useState<string[]>([]);
   const [showOnlyResourcesWithoutTags, setShowOnlyResourcesWithoutTags] = useState(false);
 
   const selectedResourcesCount = resources.filter(r => r.selected).length;
-
-  // API base URL from environment
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
 
   const handleResourceSelection = (resourceId: string, selected: boolean) => {
     setResources(prev =>
