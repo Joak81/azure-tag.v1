@@ -160,7 +160,6 @@ export const ResourcesPage: React.FC = () => {
       renderHeaderCell: () => (
         <Checkbox
           checked={selectedResourcesCount > 0}
-          indeterminate={selectedResourcesCount > 0 && selectedResourcesCount < resources.length}
           onChange={(_, data) => handleSelectAll(!!data.checked)}
         />
       ),
@@ -222,7 +221,7 @@ export const ResourcesPage: React.FC = () => {
     createTableColumn<Resource>({
       columnId: 'actions',
       renderHeaderCell: () => 'Actions',
-      renderCell: (item) => (
+      renderCell: (_) => (
         <Menu>
           <MenuTrigger disableButtonEnhancement>
             <Button

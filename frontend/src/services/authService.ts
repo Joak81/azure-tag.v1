@@ -1,10 +1,10 @@
-import { AccountInfo, InteractionRequiredAuthError, PublicClientApplication } from '@azure/msal-browser';
+import { AccountInfo, InteractionRequiredAuthError, IPublicClientApplication } from '@azure/msal-browser';
 import { azureManagementRequest } from '../config/authConfig';
 
 export class AuthService {
-  private msalInstance: PublicClientApplication;
+  private msalInstance: IPublicClientApplication;
 
-  constructor(msalInstance: PublicClientApplication) {
+  constructor(msalInstance: IPublicClientApplication) {
     this.msalInstance = msalInstance;
   }
 
@@ -44,8 +44,11 @@ export class AuthService {
     } catch (error) {
       if (error instanceof InteractionRequiredAuthError) {
         // fallback to interaction when silent call fails
-        const response = await this.msalInstance.acquireTokenPopup(azureManagementRequest);
-        return response.accessToken;
+        this.msalInstance.acquireTokenRedirect({
+          scopes: ['User.Read'],
+          account: account
+        });
+        throw new Error('Redirect initiated');
       }
       throw error;
     }
@@ -56,7 +59,9 @@ export class AuthService {
    */
   async login(): Promise<void> {
     try {
-      await this.msalInstance.loginPopup(azureManagementRequest);
+      await this.msalInstance.loginRedirect({
+        scopes: ['User.Read']
+      });
     } catch (error) {
       console.error('Login error:', error);
       throw error;

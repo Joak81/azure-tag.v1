@@ -118,10 +118,10 @@ export const Dashboard: React.FC = () => {
   };
 
   const complianceData = [
-    { label: 'Environment', percentage: 95, color: tokens.colorPaletteGreenBackground3 },
-    { label: 'Owner', percentage: 78, color: tokens.colorPaletteYellowBackground3 },
-    { label: 'CostCenter', percentage: 65, color: tokens.colorPaletteRedBackground3 },
-    { label: 'Project', percentage: 82, color: tokens.colorPaletteBlueBackground3 },
+    { label: 'Environment', percentage: 95, color: 'success' as const },
+    { label: 'Owner', percentage: 78, color: 'warning' as const },
+    { label: 'CostCenter', percentage: 65, color: 'error' as const },
+    { label: 'Project', percentage: 82, color: 'brand' as const },
   ];
 
   return (
@@ -138,7 +138,7 @@ export const Dashboard: React.FC = () => {
           <CardPreview>
             <DocumentTableRegular
               className={styles.statIcon}
-              style={{ color: tokens.colorPaletteBlueForeground1 }}
+              style={{ color: tokens.colorPaletteBlueForeground2 }}
             />
           </CardPreview>
           <CardHeader>
@@ -164,7 +164,7 @@ export const Dashboard: React.FC = () => {
           <CardPreview>
             <ShieldTaskRegular
               className={styles.statIcon}
-              style={{ color: tokens.colorPalettePurpleForeground1 }}
+              style={{ color: tokens.colorPalettePurpleForeground2 }}
             />
           </CardPreview>
           <CardHeader>

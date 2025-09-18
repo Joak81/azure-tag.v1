@@ -154,7 +154,8 @@ Recursos que serão criados:
 ```bash
 # Usando Azure CLI
 az login
-npm run deploy
+cd infrastructure/scripts
+./deploy.ps1 -Environment prod
 ```
 
 ### Deploy Manual
@@ -169,7 +170,7 @@ npm run build
 az webapp deployment source config-zip \
   --resource-group FinOps-Azure-TAG \
   --name finops-tag-manager \
-  --src dist.zip
+  --src deployment-package.zip
 ```
 
 ## 🔧 Configuração de Produção
@@ -213,7 +214,7 @@ A Web App deve ter uma System Assigned Managed Identity com as seguintes permiss
 ### 4. Compliance
 - Dashboard de compliance mostra recursos não conformes
 - Configure tags obrigatórias por subscription/resource group
-- Receive alertas por email para recursos não compliance
+- Receba alertas por email para recursos não compliance
 
 ## 🔒 Segurança
 
@@ -258,3 +259,84 @@ Para suporte técnico ou questões:
 - Gestão básica de tags
 - Dashboard de compliance
 - Alertas por email
+
+## 📚 Documentação Adicional
+
+- [Guia de Desenvolvimento](docs/DEVELOPMENT.md)
+- [Guia de Deployment](docs/DEPLOYMENT.md)
+- [Especificações Técnicas](SPECS.md)
+- [Status do Projeto](PROJECT_STATUS.md)
+
+## 🏷️ Tags de Exemplo
+
+### Tags Obrigatórias Recomendadas
+
+```json
+{
+  "Environment": ["Development", "Staging", "Production"],
+  "Owner": "email@domain.com",
+  "CostCenter": "CC-XXXX",
+  "Project": "ProjectName",
+  "Application": "AppName"
+}
+```
+
+### Templates Comuns
+
+#### Ambiente de Produção
+```json
+{
+  "Environment": "Production",
+  "Criticality": "High",
+  "DataClassification": "Internal",
+  "BackupRequired": "Yes"
+}
+```
+
+#### Ambiente de Desenvolvimento
+```json
+{
+  "Environment": "Development",
+  "Criticality": "Low",
+  "DataClassification": "Internal",
+  "BackupRequired": "No"
+}
+```
+
+## 🚨 Troubleshooting
+
+### Problemas Comuns
+
+1. **Erro de autenticação**: Verificar Azure AD app registration
+2. **Permissões negadas**: Verificar roles da managed identity
+3. **Recursos não aparecem**: Verificar permissões de leitura nas subscriptions
+4. **Tags não são aplicadas**: Verificar role "Tag Contributor"
+
+### Logs e Debugging
+
+```bash
+# Ver logs da aplicação
+az webapp log tail --name finops-tag-manager --resource-group FinOps-Azure-TAG
+
+# Health check
+curl https://finops-tag-manager.azurewebsites.net/health
+```
+
+## ⚡ Performance
+
+### Otimizações Implementadas
+- Lazy loading de componentes
+- Paginação de recursos
+- Cache de dados Azure
+- Debounce em filtros
+- Batch operations para bulk updates
+
+### Limites
+- Máximo 1000 recursos por operação bulk
+- Máximo 50 tags por recurso (limite Azure)
+- Cache TTL: 5 minutos
+- Rate limit: 1000 requests/15min por IP
+
+---
+
+**Desenvolvido com ❤️ pela equipa FinOps**

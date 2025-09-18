@@ -3,17 +3,14 @@ import {
   Text,
   Button,
   Card,
-  CardHeader,
-  CardPreview,
   makeStyles,
   tokens,
   Dropdown,
   Option,
-  DatePicker,
 } from '@fluentui/react-components';
 import {
   DocumentTableRegular,
-  DownloadRegular,
+  ArrowDownloadRegular,
   ChartMultipleRegular,
   CalendarRegular,
 } from '@fluentui/react-icons';
@@ -124,7 +121,7 @@ export const ReportsPage: React.FC = () => {
       <div className={styles.header}>
         <Text className={styles.title}>Reports & Analytics</Text>
         <div className={styles.exportSection}>
-          <Button appearance="primary" icon={<DownloadRegular />}>
+          <Button appearance="primary" icon={<ArrowDownloadRegular />}>
             Export Report
           </Button>
           <Button appearance="secondary" icon={<DocumentTableRegular />}>
@@ -217,7 +214,7 @@ export const ReportsPage: React.FC = () => {
                   fill="#8884d8"
                   dataKey="value"
                 >
-                  {subscriptionData.map((entry, index) => (
+                  {subscriptionData.map((_, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
@@ -275,13 +272,13 @@ export const ReportsPage: React.FC = () => {
       <Card style={{ padding: '20px' }}>
         <Text className={styles.chartTitle}>Export Options</Text>
         <div style={{ display: 'flex', gap: '12px', marginTop: '16px', flexWrap: 'wrap' }}>
-          <Button appearance="secondary" icon={<DownloadRegular />}>
+          <Button appearance="secondary" icon={<ArrowDownloadRegular />}>
             Export as PDF
           </Button>
-          <Button appearance="secondary" icon={<DownloadRegular />}>
+          <Button appearance="secondary" icon={<ArrowDownloadRegular />}>
             Export as Excel
           </Button>
-          <Button appearance="secondary" icon={<DownloadRegular />}>
+          <Button appearance="secondary" icon={<ArrowDownloadRegular />}>
             Export as CSV
           </Button>
           <Button appearance="secondary" icon={<ChartMultipleRegular />}>

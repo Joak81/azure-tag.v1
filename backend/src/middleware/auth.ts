@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { Client } from '@azure/msal-node';
+import { ConfidentialClientApplication } from '@azure/msal-node';
 import { unauthorized, APIError } from './errorHandler';
 import { winstonLogger } from './logger';
 
@@ -22,13 +22,16 @@ declare global {
 // MSAL configuration for server-side token validation
 const msalConfig = {
   auth: {
-    clientId: process.env.AZURE_CLIENT_ID!,
-    clientSecret: process.env.AZURE_CLIENT_SECRET!,
-    authority: `https://login.microsoftonline.com/${process.env.AZURE_TENANT_ID}`,
+    clientId: process.env.AZURE_CLIENT_ID || 'placeholder',
+    clientSecret: process.env.AZURE_CLIENT_SECRET || 'placeholder',
+    authority: `https://login.microsoftonline.com/${process.env.AZURE_TENANT_ID || 'common'}`,
   },
 };
 
-export const msalInstance = new Client(msalConfig);
+// Only create MSAL instance if we have valid credentials
+export const msalInstance = process.env.AZURE_CLIENT_SECRET
+  ? new ConfidentialClientApplication(msalConfig)
+  : null;
 
 /**
  * Middleware to authenticate requests using Azure AD tokens

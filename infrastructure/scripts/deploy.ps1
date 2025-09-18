@@ -61,14 +61,25 @@ Write-Host "Infrastructure deployed successfully!" -ForegroundColor Green
 Write-Host "Web App: $webAppName" -ForegroundColor Yellow
 Write-Host "Storage Account: $storageAccountName" -ForegroundColor Yellow
 
-# Build application
-Write-Host "Building application..." -ForegroundColor Blue
+# Build frontend
+Write-Host "Building frontend..." -ForegroundColor Blue
+cd frontend
 npm run build
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Error "Build failed!"
+    Write-Error "Frontend build failed!"
     exit 1
 }
+
+cd ..
+
+# Copy backend source for deployment (since TypeScript build has issues)
+Write-Host "Preparing backend..." -ForegroundColor Blue
+if (Test-Path "backend/dist") {
+    Remove-Item "backend/dist" -Recurse -Force
+}
+New-Item -ItemType Directory -Path "backend/dist" -Force
+Copy-Item "backend/src/*" -Destination "backend/dist/" -Recurse -Force
 
 # Create deployment package
 Write-Host "Creating deployment package..." -ForegroundColor Blue
@@ -77,8 +88,8 @@ if (Test-Path $packagePath) {
     Remove-Item $packagePath -Force
 }
 
-# Create zip with both frontend dist and backend
-Compress-Archive -Path @("frontend/dist/*", "backend/dist/*", "backend/package.json", "backend/node_modules") -DestinationPath $packagePath
+# Create zip with both frontend dist and backend source
+Compress-Archive -Path @("frontend/dist/*", "backend/src/*", "backend/package.json", "backend/tsconfig.json") -DestinationPath $packagePath
 
 # Deploy to Web App
 Write-Host "Deploying to Web App..." -ForegroundColor Blue

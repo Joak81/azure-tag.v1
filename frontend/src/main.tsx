@@ -11,13 +11,22 @@ const msalInstance = new PublicClientApplication(msalConfig);
 
 // Initialize MSAL
 msalInstance.initialize().then(() => {
-  ReactDOM.createRoot(document.getElementById('root')!).render(
-    <React.StrictMode>
-      <MsalProvider instance={msalInstance}>
-        <FluentProvider theme={webLightTheme}>
-          <App />
-        </FluentProvider>
-      </MsalProvider>
-    </React.StrictMode>,
-  );
+  // Handle redirect promise
+  msalInstance.handleRedirectPromise().then((response) => {
+    if (response) {
+      console.log('Login successful:', response);
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')!).render(
+      <React.StrictMode>
+        <MsalProvider instance={msalInstance}>
+          <FluentProvider theme={webLightTheme}>
+            <App />
+          </FluentProvider>
+        </MsalProvider>
+      </React.StrictMode>,
+    );
+  }).catch((error) => {
+    console.error('Redirect handling error:', error);
+  });
 });

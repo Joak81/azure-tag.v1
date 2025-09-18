@@ -8,7 +8,6 @@ import {
   CardFooter,
   makeStyles,
   tokens,
-  Image
 } from '@fluentui/react-components';
 import { ShieldTaskRegular, TagRegular } from '@fluentui/react-icons';
 import { useAuth } from '../hooks/useAuth';

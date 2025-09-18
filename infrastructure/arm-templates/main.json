@@ -59,8 +59,8 @@
   "variables": {
     "webAppName": "[concat(parameters('appName'), '-', parameters('environment'))]",
     "appServicePlanName": "[concat(parameters('appName'), '-plan-', parameters('environment'))]",
-    "storageAccountName": "[concat(replace(parameters('appName'), '-', ''), parameters('environment'))]",
-    "keyVaultName": "[concat(parameters('appName'), '-kv-', parameters('environment'))]",
+    "storageAccountName": "[concat('tagmgr', parameters('environment'))]",
+    "keyVaultName": "[concat('tagmgr-kv-', parameters('environment'))]",
     "applicationInsightsName": "[concat(parameters('appName'), '-insights-', parameters('environment'))]",
     "logAnalyticsWorkspaceName": "[concat(parameters('appName'), '-logs-', parameters('environment'))]"
   },
@@ -153,7 +153,7 @@
         "enableRbacAuthorization": true,
         "enableSoftDelete": true,
         "softDeleteRetentionInDays": 7,
-        "enablePurgeProtection": false,
+        "enablePurgeProtection": true,
         "networkAcls": {
           "defaultAction": "Allow",
           "bypass": "AzureServices"

@@ -5,8 +5,6 @@ import {
   Input,
   Switch,
   Card,
-  CardHeader,
-  CardPreview,
   Field,
   Dropdown,
   Option,
@@ -23,7 +21,6 @@ import {
   TagRegular,
   SaveRegular,
   AddRegular,
-  DeleteRegular,
 } from '@fluentui/react-icons';
 
 const useStyles = makeStyles({
@@ -110,7 +107,7 @@ export const SettingsPage: React.FC = () => {
     { key: 'CostCenter', description: 'Cost center for billing', scope: 'subscription' },
   ]);
 
-  const [newTag, setNewTag] = useState({ key: '', description: '', scope: 'global' as const });
+  const [newTag, setNewTag] = useState<{ key: string; description: string; scope: 'global' | 'subscription' | 'resourceGroup' }>({ key: '', description: '', scope: 'global' });
   const [newRecipient, setNewRecipient] = useState('');
 
   // General Settings
