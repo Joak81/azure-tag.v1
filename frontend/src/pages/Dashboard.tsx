@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Text,
   Card,
@@ -8,13 +8,18 @@ import {
   tokens,
   ProgressBar,
   Button,
+  Badge,
+  Spinner,
 } from '@fluentui/react-components';
 import {
   TagRegular,
   DocumentTableRegular,
   ShieldTaskRegular,
-  WarningRegular
+  WarningRegular,
+  CheckmarkCircleRegular,
+  ErrorCircleRegular,
 } from '@fluentui/react-icons';
+import { apiService } from '../services/api';
 
 const useStyles = makeStyles({
   container: {
@@ -108,6 +113,46 @@ const useStyles = makeStyles({
 
 export const Dashboard: React.FC = () => {
   const styles = useStyles();
+  const [apiStatus, setApiStatus] = useState<{
+    backend: 'loading' | 'online' | 'offline';
+    azure: 'loading' | 'online' | 'offline';
+    health?: any;
+  }>({ backend: 'loading', azure: 'loading' });
+
+  // Check API status
+  useEffect(() => {
+    const checkApiStatus = async () => {
+      try {
+        const healthResponse = await apiService.healthCheck();
+        if (healthResponse.success) {
+          setApiStatus(prev => ({
+            ...prev,
+            backend: 'online',
+            health: healthResponse.data
+          }));
+
+          // Test Azure API
+          try {
+            const subsResponse = await apiService.getSubscriptions();
+            setApiStatus(prev => ({
+              ...prev,
+              azure: subsResponse.success ? 'online' : 'offline'
+            }));
+          } catch {
+            setApiStatus(prev => ({ ...prev, azure: 'offline' }));
+          }
+        } else {
+          setApiStatus(prev => ({ ...prev, backend: 'offline' }));
+        }
+      } catch {
+        setApiStatus(prev => ({ ...prev, backend: 'offline', azure: 'offline' }));
+      }
+    };
+
+    checkApiStatus();
+    const interval = setInterval(checkApiStatus, 30000); // Check every 30s
+    return () => clearInterval(interval);
+  }, []);
 
   // Mock data - will be replaced with real data from API
   const stats = {
@@ -132,6 +177,39 @@ export const Dashboard: React.FC = () => {
           Overview of your Azure resources and tag compliance
         </Text>
       </header>
+
+      {/* API Status Card */}
+      <Card style={{ padding: '16px', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Text weight="semibold">Backend API:</Text>
+            {apiStatus.backend === 'loading' ? (
+              <Spinner size="tiny" />
+            ) : apiStatus.backend === 'online' ? (
+              <Badge color="success" icon={<CheckmarkCircleRegular />}>Online</Badge>
+            ) : (
+              <Badge color="danger" icon={<ErrorCircleRegular />}>Offline</Badge>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Text weight="semibold">Azure APIs:</Text>
+            {apiStatus.azure === 'loading' ? (
+              <Spinner size="tiny" />
+            ) : apiStatus.azure === 'online' ? (
+              <Badge color="success" icon={<CheckmarkCircleRegular />}>Connected</Badge>
+            ) : (
+              <Badge color="danger" icon={<ErrorCircleRegular />}>Disconnected</Badge>
+            )}
+          </div>
+
+          {apiStatus.health && (
+            <div style={{ marginLeft: 'auto', fontSize: '12px', color: tokens.colorNeutralForeground2 }}>
+              <Text size={200}>Version: {apiStatus.health.version} | Environment: {apiStatus.health.environment}</Text>
+            </div>
+          )}
+        </div>
+      </Card>
 
       <div className={styles.statsGrid}>
         <Card className={styles.statCard}>

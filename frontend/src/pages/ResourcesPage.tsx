@@ -35,6 +35,7 @@ import {
   DeleteRegular,
   InfoRegular,
 } from '@fluentui/react-icons';
+import { apiService } from '../services/api';
 
 const useStyles = makeStyles({
   container: {
@@ -119,49 +120,7 @@ interface SubscriptionInfo {
 }
 
 
-// Mock data for development
-const mockResources: Resource[] = [
-  {
-    id: '1',
-    name: 'webapp-prod-001',
-    type: 'Microsoft.Web/sites',
-    resourceGroup: 'rg-prod-web',
-    subscription: 'Production Subscription',
-    subscriptionId: 'sub-prod-001',
-    location: 'West Europe',
-    tags: { Environment: 'Production', Owner: 'team-web@company.com', CostCenter: 'CC-001' },
-  },
-  {
-    id: '2',
-    name: 'storage-logs-001',
-    type: 'Microsoft.Storage/storageAccounts',
-    resourceGroup: 'rg-prod-storage',
-    subscription: 'Production Subscription',
-    subscriptionId: 'sub-prod-001',
-    location: 'West Europe',
-    tags: { Environment: 'Production', Project: 'Logging' },
-  },
-  {
-    id: '3',
-    name: 'vm-dev-web-001',
-    type: 'Microsoft.Compute/virtualMachines',
-    resourceGroup: 'rg-dev-compute',
-    subscription: 'Development Subscription',
-    subscriptionId: 'sub-dev-001',
-    location: 'North Europe',
-    tags: { Environment: 'Development' },
-  },
-  {
-    id: '4',
-    name: 'untagged-storage-001',
-    type: 'Microsoft.Storage/storageAccounts',
-    resourceGroup: 'rg-test',
-    subscription: 'Test Subscription',
-    subscriptionId: 'sub-test-001',
-    location: 'North Europe',
-    tags: {},
-  },
-];
+// Resource and subscription interfaces defined above
 
 export const ResourcesPage: React.FC = () => {
   const styles = useStyles();
@@ -200,14 +159,22 @@ export const ResourcesPage: React.FC = () => {
   // Load subscriptions
   const loadSubscriptions = async () => {
     try {
-      // For now, use mock data. In production, this would fetch from API
-      setSubscriptions([
-        { subscriptionId: 'sub-prod-001', displayName: 'Production Subscription' },
-        { subscriptionId: 'sub-dev-001', displayName: 'Development Subscription' },
-        { subscriptionId: 'sub-test-001', displayName: 'Test Subscription' },
-      ]);
+      const response = await apiService.getSubscriptions();
+      if (response.success && response.data) {
+        setSubscriptions(response.data);
+      } else {
+        console.error('Failed to load subscriptions:', response.error?.message);
+        setError(response.error?.message || 'Failed to load subscriptions');
+        // Fallback to mock data if API fails
+        setSubscriptions([
+          { subscriptionId: 'sub-prod-001', displayName: 'Production Subscription' },
+          { subscriptionId: 'sub-dev-001', displayName: 'Development Subscription' },
+          { subscriptionId: 'sub-test-001', displayName: 'Test Subscription' },
+        ]);
+      }
     } catch (err) {
       console.error('Failed to load subscriptions:', err);
+      setError('Failed to load subscriptions');
     }
   };
 
@@ -232,46 +199,69 @@ export const ResourcesPage: React.FC = () => {
     setError('');
 
     try {
-      // For now, use mock data. In production, this would fetch from API
-      let filteredResources = [...mockResources];
-
-      // Apply filters
-      if (searchTerm) {
-        filteredResources = filteredResources.filter(resource =>
-          resource.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          resource.type.toLowerCase().includes(searchTerm.toLowerCase())
-        );
+      if (!selectedSubscription) {
+        setLoading(false);
+        return;
       }
 
-      if (selectedSubscription) {
-        filteredResources = filteredResources.filter(resource =>
-          resource.subscriptionId === selectedSubscription
-        );
-      }
+      const filters = {
+        // Add filters as needed - for now using basic filtering
+      };
 
-      if (selectedType) {
-        filteredResources = filteredResources.filter(resource =>
-          resource.type === selectedType
-        );
-      }
+      const response = await apiService.getResources(selectedSubscription, filters);
 
-      if (showOnlyResourcesWithoutTags) {
-        filteredResources = filteredResources.filter(resource =>
-          !resource.tags || Object.keys(resource.tags).length === 0
-        );
-      }
+      if (response.success && response.data) {
+        // Convert AzureResource to Resource format
+        let filteredResources: Resource[] = response.data.map(azureRes => ({
+          id: azureRes.id,
+          name: azureRes.name,
+          type: azureRes.type,
+          resourceGroup: azureRes.resourceGroup,
+          subscription: azureRes.subscriptionId, // Map subscriptionId to subscription
+          subscriptionId: azureRes.subscriptionId,
+          location: azureRes.location,
+          tags: azureRes.tags || {},
+          selected: false,
+        }));
 
-      if (selectedMissingTags.length > 0) {
-        filteredResources = filteredResources.filter(resource => {
-          if (!resource.tags) return true; // No tags means missing all tags
-          return selectedMissingTags.some(tag => !Object.keys(resource.tags).includes(tag));
-        });
-      }
+        // Apply filters
+        if (searchTerm) {
+          filteredResources = filteredResources.filter(resource =>
+            resource.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            resource.type.toLowerCase().includes(searchTerm.toLowerCase())
+          );
+        }
 
-      setResources(filteredResources);
+        if (selectedType) {
+          filteredResources = filteredResources.filter(resource =>
+            resource.type === selectedType
+          );
+        }
+
+        if (showOnlyResourcesWithoutTags) {
+          filteredResources = filteredResources.filter(resource =>
+            !resource.tags || Object.keys(resource.tags).length === 0
+          );
+        }
+
+        if (selectedMissingTags.length > 0) {
+          filteredResources = filteredResources.filter(resource => {
+            if (!resource.tags) return true; // No tags means missing all tags
+            return selectedMissingTags.some(tag => !Object.keys(resource.tags!).includes(tag));
+          });
+        }
+
+        setResources(filteredResources);
+      } else {
+        console.error('Failed to load resources:', response.error?.message);
+        setError(response.error?.message || 'Failed to load resources');
+        // Fallback to empty array if API fails
+        setResources([]);
+      }
     } catch (err) {
       setError('Failed to load resources. Please try again.');
       console.error('Failed to load resources:', err);
+      setResources([]);
     } finally {
       setLoading(false);
     }

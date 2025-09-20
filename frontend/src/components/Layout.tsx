@@ -140,6 +140,16 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         </nav>
 
         <div className={styles.userSection}>
+          <div style={{ marginBottom: '12px', padding: '8px', borderRadius: tokens.borderRadiusMedium, backgroundColor: tokens.colorNeutralBackground3 }}>
+            <Text size={100} style={{ color: tokens.colorNeutralForeground2 }}>
+              v1.0.0 - Build {new Date().toISOString().slice(0, 10).replace(/-/g, '')}
+            </Text>
+            <br />
+            <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>
+              Backend: {window.location.hostname === 'localhost' ? 'Dev' : 'Prod'}
+            </Text>
+          </div>
+
           <Menu>
             <MenuTrigger disableButtonEnhancement>
               <Button
