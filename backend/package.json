@@ -27,7 +27,8 @@
     "joi": "^17.12.1",
     "node-cron": "^3.0.3",
     "nodemailer": "^6.9.10",
-    "winston": "^3.11.0"
+    "winston": "^3.11.0",
+    "typescript": "^5.3.3"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
@@ -42,7 +43,6 @@
     "eslint": "^8.56.0",
     "jest": "^29.7.0",
     "supertest": "^6.3.4",
-    "tsx": "^4.7.1",
-    "typescript": "^5.3.3"
+    "tsx": "^4.7.1"
   }
 }
