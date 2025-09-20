@@ -71,7 +71,7 @@ class ApiService {
 
   // Get all subscriptions
   async getSubscriptions(): Promise<ApiResponse<AzureSubscription[]>> {
-    return this.makeRequest<AzureSubscription[]>('/subscriptions');
+    return this.makeRequest<AzureSubscription[]>('/resources/subscriptions');
   }
 
   // Get resources for a subscription
@@ -85,20 +85,21 @@ class ApiService {
     }
   ): Promise<ApiResponse<AzureResource[]>> {
     const queryParams = new URLSearchParams();
+    queryParams.append('subscriptionId', subscriptionId);
     if (filters?.resourceGroupName) queryParams.append('resourceGroupName', filters.resourceGroupName);
     if (filters?.resourceType) queryParams.append('resourceType', filters.resourceType);
     if (filters?.tagName) queryParams.append('tagName', filters.tagName);
     if (filters?.tagValue) queryParams.append('tagValue', filters.tagValue);
 
     const queryString = queryParams.toString();
-    const endpoint = `/subscriptions/${subscriptionId}/resources${queryString ? '?' + queryString : ''}`;
+    const endpoint = `/resources${queryString ? '?' + queryString : ''}`;
 
     return this.makeRequest<AzureResource[]>(endpoint);
   }
 
   // Get resource groups for a subscription
   async getResourceGroups(subscriptionId: string): Promise<ApiResponse<Array<{ name: string; location: string; tags?: Record<string, string> }>>> {
-    return this.makeRequest(`/subscriptions/${subscriptionId}/resourcegroups`);
+    return this.makeRequest(`/resources/subscriptions/${subscriptionId}/resourceGroups`);
   }
 
   // Update resource tags
@@ -107,10 +108,9 @@ class ApiService {
     tags: Record<string, string>,
     operation: 'replace' | 'merge' | 'delete' = 'merge'
   ): Promise<ApiResponse<AzureResource>> {
-    return this.makeRequest<AzureResource>('/resources/tags', {
-      method: 'PUT',
+    return this.makeRequest<AzureResource>(`/resources${resourceId}/tags`, {
+      method: 'PATCH',
       body: JSON.stringify({
-        resourceId,
         tags,
         operation,
       }),
@@ -123,8 +123,8 @@ class ApiService {
     tags: Record<string, string>,
     operation: 'replace' | 'merge' | 'delete' = 'merge'
   ): Promise<ApiResponse<{ successful: string[]; failed: Array<{ resourceId: string; error: string }> }>> {
-    return this.makeRequest('/resources/bulk-tags', {
-      method: 'PUT',
+    return this.makeRequest('/resources/bulk-update', {
+      method: 'POST',
       body: JSON.stringify({
         resourceIds,
         tags,
@@ -140,7 +140,7 @@ class ApiService {
 
   // Get current user info
   async getCurrentUser(): Promise<ApiResponse<{ id: string; name: string; email: string; tenantId: string; roles: string[] }>> {
-    return this.makeRequest('/auth/user');
+    return this.makeRequest('/api/auth/user');
   }
 }
 
