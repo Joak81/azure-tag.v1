@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
+import path from 'path';
 import { logger } from './middleware/logger';
 import { errorHandler } from './middleware/errorHandler';
 import { authMiddleware } from './middleware/auth';
@@ -50,6 +51,19 @@ app.get('/health', (req, res) => {
     status: 'OK',
     timestamp: new Date().toISOString(),
     version: process.env.npm_package_version || '1.0.0',
+    environment: process.env.NODE_ENV || 'development',
+    port: PORT.toString(),
+  });
+});
+
+// API Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    version: process.env.npm_package_version || '1.0.0',
+    environment: process.env.NODE_ENV || 'development',
+    port: PORT.toString(),
   });
 });
 
@@ -61,6 +75,21 @@ app.use('/api/resources', authMiddleware, resourceRoutes);
 app.use('/api/tags', authMiddleware, tagRoutes);
 app.use('/api/reports', authMiddleware, reportRoutes);
 app.use('/api/alerts', authMiddleware, alertRoutes);
+
+// Serve static files from frontend build in production
+if (process.env.NODE_ENV === 'production') {
+  const frontendBuildPath = path.join(__dirname, '../../frontend/dist');
+  app.use(express.static(frontendBuildPath));
+
+  // Catch-all handler: send back React's index.html file for any non-API routes
+  app.get('*', (req, res) => {
+    // Don't serve index.html for API routes that failed
+    if (req.path.startsWith('/api/')) {
+      return res.status(404).json({ success: false, error: { message: 'API endpoint not found' } });
+    }
+    res.sendFile(path.join(frontendBuildPath, 'index.html'));
+  });
+}
 
 // Error handling middleware (must be last)
 app.use(errorHandler);
