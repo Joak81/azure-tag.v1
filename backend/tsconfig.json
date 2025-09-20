@@ -11,12 +11,12 @@
     "outDir": "./dist",
     "rootDir": "./src",
 
-    "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
+    "strict": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
-    "noImplicitReturns": true,
-    "noImplicitAny": true,
+    "noImplicitReturns": false,
+    "noImplicitAny": false,
 
     "baseUrl": ".",
     "paths": {

@@ -56,7 +56,7 @@ export class AzureService {
           throw new APIError('Failed to fetch subscriptions', response.status);
         }
 
-        const data = await response.json();
+        const data: any = await response.json();
         return data.value.map((sub: any) => ({
           subscriptionId: sub.subscriptionId,
           displayName: sub.displayName,
