@@ -38,7 +38,7 @@ router.get('/user', asyncHandler(async (req: Request, res: Response) => {
       });
     }
 
-    const userProfile = await response.json();
+    const userProfile: any = await response.json();
 
     res.json({
       success: true,

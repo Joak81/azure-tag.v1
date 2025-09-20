@@ -38,7 +38,13 @@
       "Bash(timeout:*)",
       "Bash(Write-Host \"🚀 Deploy em curso com frontend build...\" -ForegroundColor Green)",
       "Bash(Write-Host \"⏱️ Aguardando GitHub Actions completar...\" -ForegroundColor Yellow)",
-      "Bash(git fetch:*)"
+      "Bash(git fetch:*)",
+      "mcp__github__get_file_contents",
+      "Bash(npm run install:all:*)",
+      "mcp__github__list_workflows",
+      "mcp__github__list_workflow_runs",
+      "mcp__github__get_workflow_run",
+      "mcp__github__get_job_logs"
     ],
     "deny": [],
     "ask": []

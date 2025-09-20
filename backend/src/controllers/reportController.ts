@@ -105,12 +105,12 @@ router.get('/compliance', asyncHandler(async (req: Request, res: Response) => {
   }, {} as Record<string, number>);
 
   const mostCommonTags = Object.entries(tagFrequency)
-    .sort(([, a], [, b]) => b - a)
+    .sort(([, a], [, b]) => (b as number) - (a as number))
     .slice(0, 10)
     .map(([tag, count]) => ({
       tag,
       count,
-      percentage: Math.round((count / totalResources) * 100),
+      percentage: Math.round(((count as number) / totalResources) * 100),
     }));
 
   const report = {

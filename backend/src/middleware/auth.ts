@@ -103,7 +103,7 @@ async function validateToken(token: string): Promise<{
       return null;
     }
 
-    const userProfile = await response.json();
+    const userProfile: any = await response.json();
 
     return {
       id: userProfile.id,

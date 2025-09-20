@@ -215,3 +215,4 @@ Always ask clarifying questions about:
 - Performance and scale expectations
 - Budget constraints
 - Security requirements
+- todo o desenvolvimento de codigo de dev ou produção deve ser guardado em github. o meu github é https://github.com/Joak81/azure-tag.v1

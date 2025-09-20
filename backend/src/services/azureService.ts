@@ -112,7 +112,7 @@ export class AzureService {
         throw new APIError('Failed to fetch resources', response.status);
       }
 
-      const data = await response.json();
+      const data: any = await response.json();
 
       let resources: AzureResource[] = data.value.map((resource: any) => ({
         id: resource.id,
@@ -168,7 +168,7 @@ export class AzureService {
         throw new APIError('Failed to fetch resource', response.status);
       }
 
-      const resource = await response.json();
+      const resource: any = await response.json();
 
       return {
         id: resource.id,
@@ -233,7 +233,7 @@ export class AzureService {
         throw new APIError('Failed to update resource tags', response.status);
       }
 
-      const updatedResource = await response.json();
+      const updatedResource: any = await response.json();
 
       return {
         id: updatedResource.id,
@@ -310,7 +310,7 @@ export class AzureService {
         throw new APIError('Failed to fetch resource groups', response.status);
       }
 
-      const data = await response.json();
+      const data: any = await response.json();
 
       return data.value.map((rg: any) => ({
         name: rg.name,
